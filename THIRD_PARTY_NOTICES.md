@@ -9,6 +9,6 @@ This repository vendors protobuf definitions from `ProPresenter7-Proto`, an unof
 - Vendored location: `vendor/ProPresenter7-Proto`
 - Vendored license: `vendor/ProPresenter7-Proto/LICENSE`
 
-The upstream project is not created, endorsed, or supported by Renewed Vision. ProPresenter is a product of Renewed Vision. This repository is also not affiliated with, endorsed by, or supported by Renewed Vision.
+Neither the upstream project nor this repository is created, endorsed, or supported by Renewed Vision. ProPresenter is a trademark of Renewed Vision, LLC, used here only to describe compatibility.
 
-Generated Python protobuf modules in `pb/` are build artifacts and are not meant to be committed.
+The compiled Python protobuf modules in `pb/` are build artifacts generated from these definitions; they are not committed and should be rebuilt with `./build_protos.sh`.

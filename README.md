@@ -1,29 +1,22 @@
 # ProPresenter Chord Editor
 
-Command-line tools for reading, clearing, and adding stage-display chords in ProPresenter 7 `.pro` files.
+Add chords to ProPresenter 7 songs from the command line, in seconds, without clicking through every slide.
 
-This project edits binary protobuf presentation files directly. It is not affiliated with, endorsed by, or supported by Renewed Vision. Keep backups of every `.pro` file before writing changes.
+ProPresenter stores chords as character-range attributes inside the binary `.pro` file, and the built-in editor makes you place each one by hand. If you already have a ChordPro chart (or a key and a few chord positions), this tool writes the chords straight into the presentation for you — and keeps them on the stage display only, so your congregation never sees them unless you ask.
 
-## What It Does
+> Not affiliated with, endorsed by, or supported by Renewed Vision. This tool edits the `.pro` file format directly using a community-maintained, reverse-engineered schema. The format is undocumented and can change between ProPresenter versions, so **always keep a backup of any `.pro` file before writing to it.**
 
-- Lists and dumps chord attributes already stored in a ProPresenter file.
-- Adds chord custom attributes from a JSON spec.
-- Clears chord custom attributes without changing slide text.
-- Converts a ChordPro chart into the JSON spec by matching chart lyrics to ProPresenter slide text.
-- Keeps chords stage-display-only by default; audience lyric rendering is opt-in.
+## What it does
 
-## Repository Hygiene
-
-Real presentation files, ChordPro charts, generated outputs, and local backups are intentionally ignored. They can contain copyrighted song text, church-specific media, or private library metadata.
-
-Generated protobuf Python modules are also ignored. Rebuild them from the vendored `.proto` files after installing dependencies.
+- **List / dump** the chords already stored in a presentation, slide by slide.
+- **Add** chords from a simple JSON spec.
+- **Clear** chords without touching the slide lyrics.
+- **Convert** a ChordPro chart into the JSON spec automatically, matching the chart's lyrics to the slides in your presentation.
+- **Stage-display only by default.** Audience-visible chord rendering is opt-in (`--audience-chords`).
 
 ## Setup
 
-Requirements:
-
-- Python 3.10 or newer
-- A shell that can run `build_protos.sh`
+You need **Python 3.10+** and a POSIX shell.
 
 ```sh
 python3 -m venv .venv
@@ -32,73 +25,81 @@ python -m pip install -r requirements.txt
 ./build_protos.sh
 ```
 
-By default, `build_protos.sh` compiles protobuf definitions from `vendor/ProPresenter7-Proto/Proto7.16.2` into `pb/`. Override paths when needed:
+`build_protos.sh` compiles the vendored protobuf schema into `pb/`. By default it reads `vendor/ProPresenter7-Proto/Proto7.16.2`. Override the paths if you need a different schema version or output directory:
 
 ```sh
 PROTO_DIR=/path/to/protos OUT_DIR=pb PYTHON=.venv/bin/python ./build_protos.sh
 ```
 
-## Usage
+The generated modules in `pb/` are build artifacts and are not checked in — rebuild them after cloning.
 
-Inspect a presentation:
+## Quick start
+
+Inspect a presentation before changing anything:
 
 ```sh
 python prochords.py list path/to/song.pro
 python prochords.py dump path/to/song.pro
 ```
 
-Generate a JSON spec from a ChordPro file:
+Generate a JSON spec from a ChordPro chart:
 
 ```sh
-python scripts/chordpro_to_json.py path/to/song.pro path/to/song.chordpro generated/song-chords.json
+python scripts/chordpro_to_json.py path/to/song.pro path/to/song.chordpro song-chords.json
 ```
 
-Write chords into a copy of the presentation:
+Write the chords into a **copy** of the presentation (never overwrite your original):
 
 ```sh
-python prochords.py add path/to/song.pro path/to/song-with-chords.pro --json generated/song-chords.json --replace
+python prochords.py add path/to/song.pro song-with-chords.pro --json song-chords.json --replace
 ```
 
-Remove chords from a copy of the presentation:
+Remove all chords from a copy:
 
 ```sh
-python prochords.py clear path/to/song.pro path/to/song-without-chords.pro
+python prochords.py clear path/to/song.pro song-without-chords.pro
 ```
 
-Use `--audience-chords` only if you also want ProPresenter to render chords in the main lyric text element. Without it, the tool leaves `chord_pro.enabled` off so chords remain stage-display-only.
+Add `--audience-chords` only if you want ProPresenter to render the chords in the main lyric text as well. Without it, chords stay on the stage display (`chord_pro.enabled` is left off).
 
-## JSON Spec
+## JSON spec
 
-The JSON input maps slide indexes to chord ranges. Ranges use zero-based offsets in the plain text extracted from the slide's RTF data.
-
-See [examples/chords.example.json](examples/chords.example.json) for a sanitized example.
+The spec maps each slide index to a list of chord ranges. Offsets are zero-based positions in the plain text extracted from the slide's RTF, so `start`/`end` mark which characters a chord sits above. See [examples/chords.example.json](examples/chords.example.json) for a full sample.
 
 ```json
 {
-	"_notation": 0,
-	"_key": "C",
-	"1": [
-		{ "start": 0, "end": 8, "chord": "C" },
-		{ "start": 9, "end": 17, "chord": "G" }
-	]
+  "_notation": 0,
+  "_key": "C",
+  "1": [
+    { "start": 0, "end": 8, "chord": "C" },
+    { "start": 9, "end": 17, "chord": "G" }
+  ]
 }
 ```
 
-Entries can also set or append invisible anchor text for chord-only sections such as intros, endings, and instrumentals:
+`_notation` selects the chord notation style (0–3) and `_key` sets the song's key metadata. Both are optional.
+
+For chord-only sections like intros, endings, and instrumentals, an entry can also insert invisible anchor text to hang the chords on:
 
 ```json
 {
-	"2": {
-		"prepend_text": "\u200b\u2001\u200b\n",
-		"chords": [
-			{ "start": 0, "end": 1, "chord": "C" },
-			{ "start": 2, "end": 3, "chord": "F" }
-		]
-	}
+  "2": {
+    "prepend_text": "​ ​\n",
+    "chords": [
+      { "start": 0, "end": 1, "chord": "C" },
+      { "start": 2, "end": 3, "chord": "F" }
+    ]
+  }
 }
 ```
 
-## Development Checks
+`scripts/chordpro_to_json.py` generates these automatically from the chord progressions in a ChordPro chart, so you rarely have to write them by hand.
+
+## A note on your song files
+
+Real presentations, ChordPro charts, generated specs, and backups are git-ignored on purpose — they often contain copyrighted lyrics, church-specific media, or private library metadata. Keep them out of any fork you publish, and use small, synthetic fixtures when contributing examples or tests.
+
+## Development
 
 ```sh
 .venv/bin/python -m py_compile prochords.py scripts/chordpro_to_json.py
@@ -107,10 +108,14 @@ Entries can also set or append invisible anchor text for chord-only sections suc
 PYTHON=.venv/bin/python ./build_protos.sh
 ```
 
-## Third-Party Code
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The protobuf definitions under `vendor/ProPresenter7-Proto` are vendored from the MIT-licensed ProPresenter7-Proto project. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the upstream license in [vendor/ProPresenter7-Proto/LICENSE](vendor/ProPresenter7-Proto/LICENSE).
+## Third-party code
+
+The protobuf definitions under `vendor/ProPresenter7-Proto` are vendored from the MIT-licensed [ProPresenter7-Proto](https://github.com/greyshirtguy/ProPresenter7-Proto) project. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the upstream [LICENSE](vendor/ProPresenter7-Proto/LICENSE).
 
 ## License
 
-This project is released under the MIT License. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
+
+ProPresenter is a trademark of Renewed Vision, LLC. It is used here only to describe compatibility, under nominative fair use.
