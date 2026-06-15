@@ -1,0 +1,8 @@
+# Normalize line endings for this project's own text files.
+* text=auto
+
+# Leave vendored third-party files byte-for-byte as upstream ships them.
+vendor/** -text
+
+# Keep shell scripts LF so they run on POSIX systems.
+*.sh text eol=lf
