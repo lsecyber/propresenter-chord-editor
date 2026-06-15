@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.venv/
+venv/
+
+# Test, lint, and coverage output
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Generated protobuf modules
+pb/
+
+# Local ProPresenter/chord-chart working files. Do not publish real song files.
+generated/
+backups/
+*.pro
+*.pro6
+*.pro7
+*.chordpro
+*.cho
+*.crd
+
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+
+# Nested clone metadata from vendored sources should never be committed.
+vendor/**/.git/
